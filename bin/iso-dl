@@ -1,0 +1,4 @@
+#!/usr/bin/env python3
+
+import iso_dl
+iso_dl.main()
