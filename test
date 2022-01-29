@@ -1,5 +1,3 @@
 #!/usr/bin/env python3
 
-from src.iso_dl import main
-
-main()
+import src.iso_dl
