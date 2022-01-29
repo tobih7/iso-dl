@@ -27,12 +27,12 @@ def archlinux():  # as of January 2022
 
 # Manjaro
 # as of January 2022
-mdurl = "https://gitlab.manjaro.org/webpage/manjaro-homepage/-/raw/master/site/content/downloads/official"
 for edition in ("xfce", "kde", "gnome"):
     for minimal, lts in (("", ""), ("_minimal", ""), ("_minimal", "_lts")):
 
-        @add(f"manjaro-{edition}{minimal}{lts}")
-        def _():
+        @add(f"manjaro-{edition}{minimal}{lts}", edition=edition, minimal=minimal, lts=lts)
+        def _(edition, minimal, lts):
+            mdurl = "https://gitlab.manjaro.org/webpage/manjaro-homepage/-/raw/master/site/content/downloads/official"
             data = dict_keys_to_lowercase(parse_key_value_pairs(get(f"{mdurl}/{edition}.md").text))
             return {
                 "version": data["version"],
@@ -40,6 +40,23 @@ for edition in ("xfce", "kde", "gnome"):
                     "url": data[f"download{minimal}{lts or '_x64'}"],
                     "torrent": data[f"download{minimal}_x64_torrent{lts}"],
                     "sha1": data[f"download{minimal}_x64_checksum{lts}"],
+                },
+            }
+
+
+for edition in ("budgie", "cinnamon", "i3", "mate"):
+    for minimal in ("", "_minimal"):
+
+        @add(f"manjaro-community-{edition}{minimal}", edition=edition, minimal=minimal)
+        def _(edition, minimal):
+            mdurl = "https://gitlab.manjaro.org/webpage/manjaro-homepage/-/raw/master/site/content/downloads/community"
+            data = dict_keys_to_lowercase(parse_key_value_pairs(get(f"{mdurl}/{edition}.md").text))
+            return {
+                "version": data["version"],
+                "amd64": {
+                    "url": data[f"download{minimal}_x64"],
+                    "torrent": data[f"download{minimal}_x64_torrent"],
+                    "sha1": data[f"download{minimal}_x64_checksum"],
                 },
             }
 

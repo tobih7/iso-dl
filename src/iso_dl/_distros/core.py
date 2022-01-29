@@ -25,22 +25,46 @@ VALID_HASHTYPES: Tuple[HashType, ...] = get_args(HashType)
 
 
 class Distro:
-    __slots__ = ("__func", "__initialized", "__name", "__version", "__archs")
+    __slots__ = ("__func", "__initialized", "__func_kwargs", "__name", "__version", "__archs")
 
-    def __init__(self, func: Callable[[], Optional[dict[str, Any]]], /, name: Optional[str] = None):
+    def __init__(
+        self,
+        func: Callable[[], Optional[dict[str, Any]]],
+        /,
+        name: Optional[str] = None,
+        func_kwargs: Optional[dict[str, Any]] = None,
+    ):
+        """
+        :param func: function that returns a dict with the following keys:
+            - version: version of the distro (str)
+            - arch?: dict with the following keys
+                - url?: URL to the ISO
+                - torrent?: URL to the torrent file
+                - magnet?: magnet link
+                - sha256?: SHA256 hash
+                - sha1?: SHA1 hash
+                - md5?: MD5 hash
+        :param name: name of the distro (str)
+            - if not given, the name is extracted from the function name
+        :param func_kwargs: keyword arguments to pass to the function
+            - useful when e.g. the function is defined inside a loop and the some
+            variables are not available anymore or have changed at the time of the call
+        """
         assert callable(func)
         assert isinstance(name, str) or name is None
+        assert isinstance(func_kwargs, dict) or func_kwargs is None
 
         self.__func = func
-        self.__initialized = False
+        self.__func_kwargs = func_kwargs or {}
         self.__name = name or parse_distro_name(func.__name__)
+        self.__initialized = False
 
     def __initialize(self) -> None:
         if self.__initialized:
             return
 
         try:
-            data = self.__func()
+            data = self.__func(**self.__func_kwargs)
         except Exception as exc:
             raise ValueError(f"failed to initialize distro") from exc
 
@@ -171,13 +195,13 @@ def parse_distro_name(name: str) -> str:
 DISTROS: dict[str, Distro] = {}
 
 
-def add(name: Optional[str] = None) -> Callable[[Callable[[], Any]], None]:
+def add(name: Optional[str] = None, **kwargs) -> Callable[[Callable[..., Any]], None]:
     assert isinstance(name, str) or name is None, "name must be str or None"
     name = name and parse_distro_name(name)
 
-    def decorator(func: Callable[[], Optional[dict[str, Any]]]) -> None:
+    def decorator(func: Callable[..., Optional[dict[str, Any]]]) -> None:
         # if no name was provided, get it by the function name
-        DISTROS[name or distro.name] = (distro := Distro(func, name=name))
+        DISTROS[name or distro.name] = (distro := Distro(func, name=name, func_kwargs=kwargs))
 
     return decorator
 
