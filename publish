@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -e
+
+rm -r dist
+python3 -m build
+python3 -m twine upload dist/*
