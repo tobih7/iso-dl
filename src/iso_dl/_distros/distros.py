@@ -7,8 +7,8 @@ from .utils import *
 
 
 # archlinux
-@add()
-def archlinux():  # as of January 2022
+@add()  # as of January 2022
+def archlinux():
     baseurl = "https://archlinux.org"
     data = get(f"{baseurl}/releng/releases/json").json()["releases"][0]
     version = data["version"]
@@ -26,9 +26,8 @@ def archlinux():  # as of January 2022
 
 
 # Manjaro
-# as of January 2022
 for edition in ("xfce", "kde", "gnome"):
-    for minimal, lts in (("", ""), ("_minimal", ""), ("_minimal", "_lts")):
+    for minimal, lts in (("", ""), ("_minimal", ""), ("_minimal", "_lts")):  # as of January 2022
 
         @add(f"manjaro-{edition}{minimal}{lts}", edition=edition, minimal=minimal, lts=lts)
         def _(edition, minimal, lts):
@@ -44,10 +43,11 @@ for edition in ("xfce", "kde", "gnome"):
             }
 
 
-for edition in ("budgie", "cinnamon", "i3", "mate"):
+# Manjaro Community
+for edition in ("budgie", "cinnamon", "i3", "mate"):  # sway is too complicated
     for minimal in ("", "_minimal"):
 
-        @add(f"manjaro-community-{edition}{minimal}", edition=edition, minimal=minimal)
+        @add(f"manjaro-community-{edition}{minimal}", edition=edition, minimal=minimal)  # as of January 2022
         def _(edition, minimal):
             mdurl = "https://gitlab.manjaro.org/webpage/manjaro-homepage/-/raw/master/site/content/downloads/community"
             data = dict_keys_to_lowercase(parse_key_value_pairs(get(f"{mdurl}/{edition}.md").text))
@@ -62,8 +62,8 @@ for edition in ("budgie", "cinnamon", "i3", "mate"):
 
 
 # Debian
-@add()
-def Debian():  # as of January 2022
+@add()  # as of January 2022
+def Debian():
     baseurl = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/"
     data = get(f"{baseurl}/SHA256SUMS")
     if (match := re.search(r"^([a-f0-9]*)\s*debian-(.*)-amd64-netinst.iso$", data.text, re.M | re.I)) is None:

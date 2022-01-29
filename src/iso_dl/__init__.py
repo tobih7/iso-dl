@@ -4,4 +4,4 @@ from pprint import pprint
 
 pprint([*DISTROS])
 
-pprint(DISTROS["manjaro-community-budgie-minimal"]["amd64"])
+# pprint(DISTROS["manjaro-community-budgie-minimal"]["amd64"])

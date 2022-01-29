@@ -44,6 +44,7 @@ class Distro:
                 - sha256?: SHA256 hash
                 - sha1?: SHA1 hash
                 - md5?: MD5 hash
+            - to indicate an error None can be returned
         :param name: name of the distro (str)
             - if not given, the name is extracted from the function name
         :param func_kwargs: keyword arguments to pass to the function
