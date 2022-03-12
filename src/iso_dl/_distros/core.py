@@ -1,6 +1,7 @@
 # iso-dl # distros #
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 import re
 from typing import Any, Callable, Literal, Optional, Tuple, get_args
 
@@ -17,6 +18,16 @@ __all__ = (
 )
 
 
+# @dataclass(frozen=True)
+# class ISO:
+#     url: Optional[str] = None
+#     torrent: Optional[str] = None
+#     magnet: Optional[str] = None
+#     sha256: Optional[str] = None
+#     sha1: Optional[str] = None
+#     md5: Optional[str] = None
+
+
 Architecture = Literal["amd64", "armhf", "aarch64"]  # x86_64 is always replaced with amd64
 VALID_ARCHITECTURES: Tuple[Architecture, ...] = get_args(Architecture)
 
@@ -25,7 +36,7 @@ VALID_HASHTYPES: Tuple[HashType, ...] = get_args(HashType)
 
 
 class Distro:
-    __slots__ = ("__func", "__initialized", "__func_kwargs", "__name", "__version", "__archs")
+    __slots__ = ("__func", "__initialized", "__func_args", "__func_kwargs", "__name", "__version", "__archs")
 
     def __init__(
         self,
@@ -33,6 +44,7 @@ class Distro:
         /,
         name: Optional[str] = None,
         func_kwargs: Optional[dict[str, Any]] = None,
+        func_args: Optional[tuple[Any]] = None,
     ):
         """
         :param func: function that returns a dict with the following keys:
@@ -47,15 +59,18 @@ class Distro:
             - to indicate an error None can be returned
         :param name: name of the distro (str)
             - if not given, the name is extracted from the function name
+        :param func_args: arguments to pass to the function
         :param func_kwargs: keyword arguments to pass to the function
             - useful when e.g. the function is defined inside a loop and the some
             variables are not available anymore or have changed at the time of the call
         """
         assert callable(func)
         assert isinstance(name, str) or name is None
+        assert isinstance(func_args, tuple) or func_args is None
         assert isinstance(func_kwargs, dict) or func_kwargs is None
 
         self.__func = func
+        self.__func_args = func_args or tuple()
         self.__func_kwargs = func_kwargs or {}
         self.__name = name or parse_distro_name(func.__name__)
         self.__initialized = False
@@ -65,19 +80,19 @@ class Distro:
             return
 
         try:
-            data = self.__func(**self.__func_kwargs)
+            data = self.__func(*self.__func_args, **self.__func_kwargs)
         except Exception as exc:
-            raise ValueError(f"failed to initialize distro") from exc
+            raise Exceptions.DistroInitializationFailure(f"failed to initialize distro") from exc
 
         # verify data
         assert isinstance(data, dict), "must return dict"
 
         if data is None:
-            raise ValueError("failed to initialize distro")
+            raise Exceptions.DistroInitializationFailure("failed to initialize distro")
 
         # version
         if not "version" in data:
-            raise ValueError("missing version")
+            raise Exceptions.DistroInitializationFailure("missing version")
         self.__version = data.pop("version")
 
         # architectures
@@ -85,12 +100,12 @@ class Distro:
             data["amd64"] = data.pop("x86_64")
         archs: dict[str, dict[str, str]] = {i: data.pop(i) for i in list(data.keys()) if i in VALID_ARCHITECTURES}
         if data:  # data should be empty now
-            raise ValueError(f"Invalid architectures: {', '.join(data.keys())}")
+            raise Exceptions.DistroInitializationFailure(f"Invalid architectures: {', '.join(data.keys())}")
 
         self.__archs: dict[str, dict[str, Any]] = {}
         for name, content in archs.items():
             if invalid := {*content.keys()} - {*VALID_HASHTYPES, "url", "torrent", "magnet"}:
-                raise ValueError(f"Invalid keys: {', '.join(invalid)}")
+                raise Exceptions.DistroInitializationFailure(f"Invalid keys: {', '.join(invalid)}")
 
             self.__archs[name] = {
                 "url": URL(url) if (url := content.pop("url", None)) else None,
@@ -187,6 +202,11 @@ class Hash:
         return f"<Hash {self.__type} {self.__value!r}>"
 
 
+class Exceptions:
+    class DistroInitializationFailure(Exception):
+        pass
+
+
 def parse_distro_name(name: str) -> str:
     name = re.sub(r"\s+|_+", "-", name)
     assert re.match(r"^[a-zA-Z0-9-]+$", name) is not None, "name must only consist of a-z, A-Z, 0-9 and -"
@@ -196,25 +216,12 @@ def parse_distro_name(name: str) -> str:
 DISTROS: dict[str, Distro] = {}
 
 
-def add(name: Optional[str] = None, **kwargs) -> Callable[[Callable[..., Any]], None]:
+def add(name: Optional[str] = None, *args, **kwargs) -> Callable[[Callable[..., Any]], None]:
     assert isinstance(name, str) or name is None, "name must be str or None"
     name = name and parse_distro_name(name)
 
     def decorator(func: Callable[..., Optional[dict[str, Any]]]) -> None:
         # if no name was provided, get it by the function name
-        DISTROS[name or distro.name] = (distro := Distro(func, name=name, func_kwargs=kwargs))
+        DISTROS[(name or distro.name).lower()] = (distro := Distro(func, name=name, func_args=args, func_kwargs=kwargs))
 
     return decorator
-
-
-# # this looks weird, but it's faster than using decorators
-# def generate_distro_list() -> None:
-#     from .distros import __dict__ as distros
-
-#     modulename = f"{__name__}.distros"
-#     for name, func in distros.items():
-#         if callable(func) and func.__module__ == modulename:
-#             DISTROS[name] = Distro(func)
-
-
-# generate_distro_list()
