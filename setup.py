@@ -23,5 +23,5 @@ setuptools.setup(
     packages=setuptools.find_packages(where="src"),
     python_requires=">=3.9",
     scripts=["bin/iso-dl"],
-    requires=["aria2p"],
+    requires=["aria2p", "BeautifulSoup4"],
 )

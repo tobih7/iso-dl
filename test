@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
 import src.iso_dl as iso_dl
+
+iso_dl.main()
+
+raise SystemExit
+
 from sys import argv
 
 if not argv[1:]:

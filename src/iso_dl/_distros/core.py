@@ -198,6 +198,9 @@ class Hash:
     def value(self) -> str:
         return self.__value
 
+    def __str__(self) -> str:
+        return self.__value
+
     def __repr__(self) -> str:
         return f"<Hash {self.__type} {self.__value!r}>"
 
