@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as readme:
 
 setuptools.setup(
     name="iso-dl",
-    version="0.3",
+    version="0.4",
     author="txhx38",
     author_email="txhx38@gmail.com",
     description="Download Linux ISOs quickly from the command line.",
