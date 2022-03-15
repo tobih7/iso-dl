@@ -1,7 +1,9 @@
 # iso-dl # distros #
 
 import re
+from warnings import warn
 from requests import get
+from pprint import pprint
 from .core import add
 from .utils import *
 
@@ -86,12 +88,29 @@ for edition in ("user", "testing", "unstable", "developer"):
 @add()  # as of March 2022
 def Archcraft():
     data = get_links_from_url("https://archcraft.io/download")
-    by_end = lambda end: [i for i in data if i.endswith(end)][0]
     return {
-        "version": re.findall(r"download/v(.+)/archcraft", iso := by_end(".iso"), re.I)[0],
+        "version": re.findall(r"download/v(.+)/archcraft", iso := by_end(data, ".iso")[0], re.I)[0],
         "amd64": {
             "url": iso,
-            "torrent": by_end(".torrent"),
-            "sha256": get(by_end(".sha256sum")).text.split()[0],
+            "torrent": by_end(data, ".torrent")[0],
+            "sha256": get(by_end(data, ".sha256sum")[0]).text.split()[0],
+        },
+    }
+
+
+# Fedora #
+@add()  # as of March 2022
+def Fedora():
+    data = by_end(get_links_from_url("https://getfedora.org/en/workstation/download/"), ".iso")
+    if len(data) != 2:
+        warn(f"Found {len(data)} iso files, expected 2:")
+        pprint(data)
+    return {
+        "version": re.findall(r"-(\d+-[\d.]+).iso$", data[0])[0],
+        "amd64": {
+            "url": [i for i in data if "x86_64" in i][0],
+        },
+        "aarch64": {
+            "url": [i for i in data if "aarch64" in i][0],
         },
     }
