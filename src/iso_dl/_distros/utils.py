@@ -4,7 +4,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-__all__ = ("parse_key_value_pairs", "dict_keys_to_lowercase", "get_links_from_url")
+__all__ = ("parse_key_value_pairs", "dict_keys_to_lowercase", "get_links_from_url", "by_end")
 
 
 def parse_key_value_pairs(key_value_pairs: str) -> dict[str, str]:
@@ -28,3 +28,10 @@ def get_links_from_url(url: str) -> list[str]:
     r = requests.get(url)
     soup = BeautifulSoup(r.text, "html.parser")
     return [link.get("href") for link in soup.find_all("a")]
+
+
+def by_end(data: list, end: str) -> list:
+    """
+    Filter a list by the end of the string.
+    """
+    return [i for i in data if i.endswith(end)]
